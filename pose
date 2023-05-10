@@ -1,0 +1,161 @@
+# Modules for GUI
+from tkinter import *
+import math
+from tkinter import filedialog
+from PIL import Image, ImageTk
+# Modules for Mediapipe
+import cv2
+import numpy as np
+import time
+import pose as pm
+# Video accessing
+def videoselect(cam=1, file1=NONE):
+    global cap
+    if cam:
+        cap = cv2.VideoCapture(0)
+    else:
+        cap = cv2.VideoCapture(file1)
+
+
+videoselect()
+detector = pm.PoseDetector()
+count = 0
+dir = 0
+pTime = 0
+def test_condition():
+    global count
+    global dir
+    global pTime
+    success, img = cap.read()
+
+    # Sizing the screen
+    img = cv2.resize(img, (990, 600))  # width, height
+
+    img = detector.findPose(img)
+    lmList = detector.findPosition(img, False)
+
+
+    if len(lmList) != 0:
+        angle = detector.findAngle(img, 23, 25, 27)
+        angle2 = detector.findAngle(img, 24, 26, 28)
+        print(angle)
+        new_lm = detector.new_landmark(23, 25)
+        print(new_lm)
+        per = np.interp(angle, (77, 172), (100, 0))
+        status_bar = np.interp(angle, (77, 172), (100, 550))
+        per2 = np.interp(angle2, (77, 172), (100, 0))
+        status_bar2 = np.interp(angle, (77, 172), (100, 550))
+
+
+        if per == 100:
+            if dir == 1:
+                count += 0.5
+                dir = 0
+        if per == 0:
+            if dir == 0:
+                count += 0.5
+                dir = 1
+
+        if per2 == 100:
+            if dir == 1:
+                count += 0.5
+                dir = 0
+        if per2 == 0:
+            if dir == 0:
+                count += 0.5
+                dir = 1
+        cv2.rectangle(img, (875, 100), (900, 570), (0, 255, 0), 3)
+        cv2.rectangle(img, (875, int(status_bar)), (900, 570), (0, 255, 0), cv2.FILLED)
+        cv2.putText(img, f'{int(per)}%', (875, 95), cv2.FONT_HERSHEY_PLAIN, 3, (255, 0, 0), 4)
+        cv2.rectangle(img, (0, 450), (150, 570), (0, 255, 0), cv2.FILLED)
+        cv2.putText(img, str(int(count)), (45, 540), cv2.FONT_HERSHEY_PLAIN, 5, (255, 0, 0), 5)
+    # Displaying FPS
+    cTime = time.time()
+    fps = 1 / (cTime - pTime)
+    pTime = cTime
+
+    cv2.putText(img, str(int(fps)), (50, 100), cv2.FONT_HERSHEY_PLAIN, 3,
+                (255, 0, 0), 3)
+    rgb = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    return rgb
+''''''''''''''' Tkinter Code '''''''''''''''
+def openfile():
+    file1 = filedialog.askopenfilename()
+    cam = 0
+    videoselect(cam, file1)
+from  vedio_mp4 import v1,v2
+# code for opening first video
+def openVideo1():
+    file1 = v1
+    cam = 0
+    videoselect(cam, file1)
+
+
+def openVideo2():
+    file1 = v2
+    cam = 0
+    videoselect(cam, file1)
+
+
+def camvideo():
+    cam = 1
+    videoselect(cam)
+
+
+def close():
+    window.destroy()
+
+
+# Window Creation
+window = Tk()
+window.configure(bg='white')
+window.title("CEP-2_Forward_Lunge_Exercise")
+width = window.winfo_screenwidth()+10
+height = window.winfo_screenheight()+10
+window.geometry("%dx%d" % (width, height))
+window.minsize(width, height)
+window.maxsize(width, height)
+
+'''GUI interfacing'''
+
+frame1 = Frame(window, bg='white', bd=10)
+frame1.pack(side=TOP, fill=BOTH, expand=YES)
+
+# Create the label for the video player
+label1 = Label(frame1, width=960, height=540, relief=SUNKEN, bd=10)
+label1.pack(side=TOP, fill=BOTH, expand=YES)
+
+# Create a frame for the buttons
+frame2 = Frame(window, bg='white', bd=10)
+frame2.pack(side=BOTTOM, fill=X)
+
+# Create the buttons and pack them
+explore = Button(frame2, text="UPLOAD FILE", bg='white', fg='black', font=(
+    "Calibri", 14, "bold"), command=openfile, relief=GROOVE, bd=5)
+explore.pack(side=LEFT, padx=10, pady=10, expand=YES, fill=X)
+
+livecam = Button(frame2, text="LIVE CAMERA", bg='white', fg='black', font=(
+    "Calibri", 14, "bold"), command=camvideo, relief=GROOVE, bd=5)
+livecam.pack(side=LEFT, padx=10, pady=10, expand=YES, fill=X)
+
+VEDIO1 = Button(frame2, text="Test Video1", bg='white', fg='black', font=(
+    "Calibri", 14, "bold"), command=openVideo1, relief=GROOVE, bd=5)
+VEDIO1.pack(side=LEFT, padx=10, pady=10, expand=YES, fill=X)
+
+VEDIO2 = Button(frame2, text="Test Video2", bg='white', fg='black', font=(
+    "Calibri", 14, "bold"), command=openVideo2, relief=GROOVE, bd=5)
+VEDIO2.pack(side=LEFT, padx=10, pady=10, expand=YES, fill=X)
+
+Exit_BUTTON = Button(frame2, text="Exit", bg='white', fg='black', font=(
+    "Calibri", 14, "bold"), command=close, relief=GROOVE, bd=5)
+Exit_BUTTON.pack(side=LEFT, padx=10, pady=10, expand=YES, fill=X)
+def select_img():
+    image = Image.fromarray(test_condition())
+    finalImage = ImageTk.PhotoImage(image)
+    label1.configure(image=finalImage)
+    label1.image = finalImage
+    window.after(1, select_img)
+
+select_img()
+
+window.mainloop()
